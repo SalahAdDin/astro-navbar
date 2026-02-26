@@ -1,13 +1,8 @@
 ---
-interface Props {
-  closeOnClick?: boolean;
-}
-const { closeOnClick = false } = Astro.props;
 ---
+<slot/>
 
-<slot />
-
-<script define:vars={{ closeOnClick }}>
+<script>
 ["DOMContentLoaded", "astro:after-swap"].forEach((event) => {
   document.addEventListener(event, addListeners);
 });
@@ -19,26 +14,36 @@ function cloneAndReplace(element) {
 }
 
 function addListeners() {
+  document.querySelectorAll('button[data-astronav]').forEach((button) => {
+    addListenersForButton(`button[data-astronav="${button.getAttribute('data-astronav')}"]`)
+  })
+}
+
+function addListenersForButton(selector: string) {
   // Clean up existing listeners
-  const oldMenuButton = document.getElementById("astronav-menu");
+  const oldMenuButton = document.querySelector(selector);
+
   if (oldMenuButton) {
     cloneAndReplace(oldMenuButton);
   }
 
   const oldDropdownMenus = document.querySelectorAll(".astronav-dropdown");
+
   oldDropdownMenus.forEach((menu) => {
     cloneAndReplace(menu);
   });
 
   // Mobile nav toggle
-  const menuButton = document.getElementById("astronav-menu");
+  const menuButton = document.querySelector(selector);
   menuButton && menuButton.addEventListener("click", toggleMobileNav);
 
   // Dropdown menus
   const dropdownMenus = document.querySelectorAll(".astronav-dropdown");
+  
   dropdownMenus.forEach((menu) => {
     const button = menu.querySelector("button");
-    button &&
+
+    button && 
       button.addEventListener("click", (event) =>
         toggleDropdownMenu(event, menu, dropdownMenus)
       );
@@ -60,6 +65,8 @@ function addListeners() {
 
   // Clicking away from dropdown will remove the dropdown class
   document.addEventListener("click", closeAllDropdowns);
+
+  const closeOnClick = menuButton.getAttribute("data-closeOnClick")
 
   if (closeOnClick) {
     handleCloseOnClick();
@@ -91,6 +98,7 @@ function toggleSubmenuDropdown(event, submenu) {
   const siblingSubmenus = submenu
     .closest(".astronav-dropdown")
     .querySelectorAll(".astronav-dropdown-submenu");
+
   Array.from(siblingSubmenus)
     .filter((el) => el !== submenu && !submenu.contains(el))
     .forEach(closeMenu);
@@ -104,10 +112,11 @@ function closeAllDropdowns(event) {
   const isButtonInsideDropdown = [
     ...document.querySelectorAll(
       `.astronav-dropdown button, .astronav-dropdown label, .astronav-dropdown input,
-	  .astronav-dropdown-submenu button, .astronav-dropdown-submenu label, .astronav-dropdown-submenu input,
-	  #astronav-menu`
+      .astronav-dropdown-submenu button, .astronav-dropdown-submenu label, .astronav-dropdown-submenu input,
+      button[data-astronav]`
     ),
   ].some((button) => button.contains(event.target));
+
   if (!isButtonInsideDropdown) {
     dropdownMenus.forEach((d) => {
       // console.log("I ran", d);
@@ -117,6 +126,7 @@ function closeAllDropdowns(event) {
       d.classList.add("hidden");
       // }
     });
+    
     dropdownParent.forEach((d) => {
       d.classList.remove("open");
       d.removeAttribute("open");
